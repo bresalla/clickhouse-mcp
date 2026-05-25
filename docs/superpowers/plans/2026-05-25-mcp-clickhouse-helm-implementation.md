@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a minimal Helm chart and VS Code tasks to build/push Docker image tags (release + SHA) and deploy the server to Kubernetes in `localdev` using existing secrets.
+**Goal:** Add a minimal Helm chart and VS Code tasks to build/push Docker image tags (release + SHA) and deploy the server to Kubernetes in `localdev` using existing secret references.
 
 **Architecture:** Introduce an independent chart under `helm/mcp-clickhouse/` with only chart metadata, values, deployment, service, and helpers. Configure runtime via values and secretKeyRef. Add task automation in `.vscode/tasks.json` for image build/push, chart validation, deployment, and smoke checks.
 
@@ -43,7 +43,7 @@ appVersion: "1.0.0"
 namespace: monitoring
 
 image:
-  repository: docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse
+  repository: <container-registry>/<image-name>
   tag: "1.0.0"
   pullPolicy: IfNotPresent
 
@@ -59,12 +59,12 @@ server:
   authDisabled: true
 
 clickhouse:
-  host: clickhouse-stg-portal.cloud-ng.net
-  port: 9440
+  host: <clickhouse-host>
+  port: <clickhouse-port>
   secret:
-    name: access-log-reporter-secret
-    userKey: DATABASES_TLVQAE2E_USER
-    passwordKey: DATABASES_TLVQAE2E_PASSWORD
+    name: <existing-secret-name>
+    userKey: <secret-user-key>
+    passwordKey: <secret-password-key>
 ```
 
 - [ ] **Step 3: Verify files exist**
@@ -277,8 +277,8 @@ Expected: File created with rendered manifests.
 
 - [ ] **Step 2: Verify secretKeyRef appears for user/password**
 
-Run: `rg -n "secretKeyRef|DATABASES_TLVQAE2E_USER|DATABASES_TLVQAE2E_PASSWORD" /tmp-mcp-clickhouse-render.yaml`
-Expected: Matches for both key names and secretKeyRef blocks.
+Run: `rg -n "secretKeyRef|<secret-user-key>|<secret-password-key>" /tmp-mcp-clickhouse-render.yaml`
+Expected: Matches for both placeholder key names and secretKeyRef blocks.
 
 - [ ] **Step 3: Verify health probes exist**
 

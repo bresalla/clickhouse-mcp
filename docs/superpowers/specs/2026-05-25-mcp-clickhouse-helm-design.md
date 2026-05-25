@@ -23,13 +23,13 @@ The design intentionally avoids application code or Dockerfile behavior changes.
 ## Confirmed Decisions
 
 - Transport/Auth mode: HTTP with auth disabled.
-- ClickHouse endpoint: `clickhouse-stg-portal.cloud-ng.net:9440`.
-- Existing secret: `access-log-reporter-secret`.
+- ClickHouse endpoint: `<clickhouse-host>:<clickhouse-port>`.
+- Existing secret: `<existing-secret-name>`.
 - Secret keys for credentials:
-  - `DATABASES_TLVQAE2E_USER`
-  - `DATABASES_TLVQAE2E_PASSWORD`
+  - `<secret-user-key>`
+  - `<secret-password-key>`
 - Docker repository:
-  - `docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse`
+  - `<container-registry>/<image-name>`
 - Tag policy:
   - Use configurable release tag (default `1.0.0`)
   - Use git SHA tag
@@ -68,7 +68,7 @@ Minimal files:
 ### Image Values
 
 - `image.repository` default:
-  - `docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse`
+  - `<container-registry>/<image-name>`
 - `image.tag` default:
   - `1.0.0`
 - `image.pullPolicy` default:
@@ -88,15 +88,15 @@ Minimal files:
 ### ClickHouse Values
 
 - `clickhouse.host` default:
-  - `clickhouse-stg-portal.cloud-ng.net`
+  - `<clickhouse-host>`
 - `clickhouse.port` default:
-  - `9440`
+  - `<clickhouse-port>`
 - `clickhouse.secret.name` default:
-  - `access-log-reporter-secret`
+  - `<existing-secret-name>`
 - `clickhouse.secret.userKey` default:
-  - `DATABASES_TLVQAE2E_USER`
+  - `<secret-user-key>`
 - `clickhouse.secret.passwordKey` default:
-  - `DATABASES_TLVQAE2E_PASSWORD`
+  - `<secret-password-key>`
 
 ### Auth/Transport Values
 

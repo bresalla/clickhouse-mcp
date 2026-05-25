@@ -49,7 +49,7 @@ The endpoint is intentionally unauthenticated so orchestrator probes (e.g. Kuber
 
 Example:
 ```bash
-curl http://localhost:8000/health
+curl http://<mcp-host>:<mcp-port>/health
 # Response: OK
 ```
 
@@ -82,7 +82,7 @@ Startup fails if none of these are configured for HTTP/SSE transports.
 
 2. Configure the server with the token:
    ```bash
-   export CLICKHOUSE_MCP_AUTH_TOKEN="your-generated-token"
+  export CLICKHOUSE_MCP_AUTH_TOKEN="<generated-token>"
    ```
 
 3. Configure your MCP client to include the token in requests:
@@ -92,9 +92,9 @@ Startup fails if none of these are configured for HTTP/SSE transports.
    {
      "mcpServers": {
        "mcp-clickhouse": {
-         "url": "http://127.0.0.1:8000",
+         "url": "http://<mcp-host>:<mcp-port>",
          "headers": {
-           "Authorization": "Bearer your-generated-token"
+           "Authorization": "Bearer <generated-token>"
          }
        }
      }
@@ -132,8 +132,8 @@ export CLICKHOUSE_MCP_AUTH_DISABLED=true
 This MCP server supports both ClickHouse and chDB. You can enable either or both depending on your needs.
 
 1. Open the Claude Desktop configuration file located at:
-   * On macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   * On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+  * On macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+  * On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
 
 2. Add the following:
 
@@ -168,7 +168,7 @@ This MCP server supports both ClickHouse and chDB. You can enable either or both
 
 Update the environment variables to point to your own ClickHouse service.
 
-Or, if you'd like to try it out with the [ClickHouse SQL Playground](https://sql.clickhouse.com/), you can use the following config:
+Or, if you'd like to try it out with a ClickHouse SQL Playground instance, you can use the following config:
 
 ```json
 {
@@ -184,9 +184,9 @@ Or, if you'd like to try it out with the [ClickHouse SQL Playground](https://sql
         "mcp-clickhouse"
       ],
       "env": {
-        "CLICKHOUSE_HOST": "sql-clickhouse.clickhouse.com",
-        "CLICKHOUSE_PORT": "8443",
-        "CLICKHOUSE_USER": "demo",
+        "CLICKHOUSE_HOST": "<clickhouse-playground-host>",
+        "CLICKHOUSE_PORT": "<clickhouse-port>",
+        "CLICKHOUSE_USER": "<clickhouse-user>",
         "CLICKHOUSE_PASSWORD": "",
         "CLICKHOUSE_SECURE": "true",
         "CLICKHOUSE_VERIFY": "true",
@@ -258,6 +258,53 @@ You can also enable both ClickHouse and chDB simultaneously:
 3. Locate the command entry for `uv` and replace it with the absolute path to the `uv` executable. This ensures that the correct version of `uv` is used when starting the server. On a mac, you can find this path using `which uv`.
 
 4. Restart Claude Desktop to apply the changes.
+
+### VS Code MCP Configuration
+
+To add this server to the MCP server list in VS Code for this workspace, create `.vscode/mcp.json` with:
+
+```json
+{
+  "servers": {
+    "mcp-clickhouse": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--with",
+        "mcp-clickhouse",
+        "--python",
+        "3.10",
+        "mcp-clickhouse"
+      ],
+      "env": {
+        "CLICKHOUSE_HOST": "<clickhouse-host>",
+        "CLICKHOUSE_PROTOCOL": "native",
+        "CLICKHOUSE_PORT": "<clickhouse-port>",
+        "CLICKHOUSE_USER": "<clickhouse-user>",
+        "CLICKHOUSE_PASSWORD": "<clickhouse-password>",
+        "CLICKHOUSE_SECURE": "true",
+        "CLICKHOUSE_VERIFY": "true",
+        "CLICKHOUSE_CONNECT_TIMEOUT": "30",
+        "CLICKHOUSE_SEND_RECEIVE_TIMEOUT": "30",
+        "CLICKHOUSE_MCP_SERVER_TRANSPORT": "stdio"
+      }
+    }
+  }
+}
+```
+
+After saving the file, reload the VS Code window so the MCP server list is refreshed.
+
+#### Example usage in VS Code chat
+
+1. "Use `mcp-clickhouse` to list databases"
+2. "Run query: `SELECT now()`"
+3. "List tables in database `<database>` with page_size 10"
+
+Expected behavior:
+- The MCP server starts from the configured command.
+- Tool calls `list_databases`, `run_query`, and `list_tables` are available.
+- Query results are returned as JSON-encoded tool output.
 
 ### Optional Write Access
 
@@ -455,13 +502,13 @@ This enables advanced use cases like dynamic timeout adjustments, tenant-specifi
 
 2. Add the following variables to a `.env` file in the root of the repository.
 
-*Note: The use of the `default` user in this context is intended solely for local development purposes.*
+*Note: Use a non-production local development user in this context only.*
 
 ```bash
-CLICKHOUSE_HOST=localhost
-CLICKHOUSE_PORT=8123
-CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=clickhouse
+CLICKHOUSE_HOST=<clickhouse-host>
+CLICKHOUSE_PORT=<clickhouse-port>
+CLICKHOUSE_USER=<clickhouse-user>
+CLICKHOUSE_PASSWORD=<clickhouse-password>
 ```
 
 3. Run `uv sync` to install the dependencies. To install `uv` follow the instructions [here](https://docs.astral.sh/uv/). Then do `source .venv/bin/activate`.
@@ -474,10 +521,10 @@ CLICKHOUSE_PASSWORD=clickhouse
    CLICKHOUSE_MCP_SERVER_TRANSPORT=http CLICKHOUSE_MCP_AUTH_DISABLED=true python -m mcp_clickhouse.main
 
    # Or with authentication (generate a token first)
-   CLICKHOUSE_MCP_SERVER_TRANSPORT=http CLICKHOUSE_MCP_AUTH_TOKEN="your-token" python -m mcp_clickhouse.main
+  CLICKHOUSE_MCP_SERVER_TRANSPORT=http CLICKHOUSE_MCP_AUTH_TOKEN="<generated-token>" python -m mcp_clickhouse.main
 
    # Then in another terminal:
-   curl http://localhost:8000/health
+  curl http://<mcp-host>:<mcp-port>/health
    ```
 
 ### Environment Variables
@@ -526,7 +573,7 @@ The following environment variables are used to configure the ClickHouse and chD
   * Default: `"stdio"`
   * Valid options: `"stdio"`, `"http"`, `"sse"`. This is useful for local development with tools like MCP Inspector.
 * `CLICKHOUSE_MCP_BIND_HOST`: Host to bind the MCP server to when using HTTP or SSE transport
-  * Default: `"127.0.0.1"`
+  * Default: `"<bind-host>"`
   * Set to `"0.0.0.0"` to bind to all network interfaces (useful for Docker or remote access)
   * Only used when transport is `"http"` or `"sse"`
 * `CLICKHOUSE_MCP_BIND_PORT`: Port to bind the MCP server to when using HTTP or SSE transport
@@ -586,12 +633,12 @@ For local development with Docker:
 
 ```env
 # Required variables
-CLICKHOUSE_HOST=localhost
-CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=clickhouse
+CLICKHOUSE_HOST=<clickhouse-host>
+CLICKHOUSE_USER=<clickhouse-user>
+CLICKHOUSE_PASSWORD=<clickhouse-password>
 
 # Optional: Override defaults for local development
-CLICKHOUSE_SECURE=false  # Uses port 8123 automatically
+CLICKHOUSE_SECURE=false  # Uses the configured non-TLS port automatically
 CLICKHOUSE_VERIFY=false
 ```
 
@@ -599,9 +646,9 @@ For ClickHouse Cloud:
 
 ```env
 # Required variables
-CLICKHOUSE_HOST=your-instance.clickhouse.cloud
-CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=your-password
+CLICKHOUSE_HOST=<clickhouse-cloud-host>
+CLICKHOUSE_USER=<clickhouse-user>
+CLICKHOUSE_PASSWORD=<clickhouse-password>
 
 # Optional: These use secure defaults
 # CLICKHOUSE_SECURE=true  # Uses port 8443 automatically
@@ -611,10 +658,10 @@ CLICKHOUSE_PASSWORD=your-password
 For ClickHouse SQL Playground:
 
 ```env
-CLICKHOUSE_HOST=sql-clickhouse.clickhouse.com
-CLICKHOUSE_USER=demo
+CLICKHOUSE_HOST=<clickhouse-playground-host>
+CLICKHOUSE_USER=<clickhouse-user>
 CLICKHOUSE_PASSWORD=
-# Uses secure defaults (HTTPS on port 8443)
+# Uses secure defaults (HTTPS on the configured secure port)
 ```
 
 For chDB only (in-memory):
@@ -638,28 +685,28 @@ CHDB_DATA_PATH=/path/to/chdb/data
 For MCP Inspector or remote access with HTTP transport:
 
 ```env
-CLICKHOUSE_HOST=localhost
-CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=clickhouse
+CLICKHOUSE_HOST=<clickhouse-host>
+CLICKHOUSE_USER=<clickhouse-user>
+CLICKHOUSE_PASSWORD=<clickhouse-password>
 CLICKHOUSE_MCP_SERVER_TRANSPORT=http
-CLICKHOUSE_MCP_BIND_HOST=0.0.0.0  # Bind to all interfaces
-CLICKHOUSE_MCP_BIND_PORT=4200  # Custom port (default: 8000)
-CLICKHOUSE_MCP_AUTH_TOKEN=your-generated-token  # One auth mode required for HTTP/SSE (or FASTMCP_SERVER_AUTH, or CLICKHOUSE_MCP_AUTH_DISABLED=true)
+CLICKHOUSE_MCP_BIND_HOST=<bind-host>  # Bind to all interfaces if needed
+CLICKHOUSE_MCP_BIND_PORT=<bind-port>  # Custom port (default: 8000)
+CLICKHOUSE_MCP_AUTH_TOKEN=<generated-token>  # One auth mode required for HTTP/SSE (or FASTMCP_SERVER_AUTH, or CLICKHOUSE_MCP_AUTH_DISABLED=true)
 ```
 
 For local development with HTTP transport (authentication disabled):
 
 ```env
-CLICKHOUSE_HOST=localhost
-CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=clickhouse
+CLICKHOUSE_HOST=<clickhouse-host>
+CLICKHOUSE_USER=<clickhouse-user>
+CLICKHOUSE_PASSWORD=<clickhouse-password>
 CLICKHOUSE_MCP_SERVER_TRANSPORT=http
 CLICKHOUSE_MCP_AUTH_DISABLED=true  # Only for local development!
 ```
 
 When using HTTP transport, the server will run on the configured port (default 8000). For example, with the above configuration:
-- MCP endpoint: `http://localhost:4200/mcp`
-- Health check: `http://localhost:4200/health`
+- MCP endpoint: `http://<mcp-host>:<mcp-port>/mcp`
+- Health check: `http://<mcp-host>:<mcp-port>/health`
 
 You can set these variables in your environment, in a `.env` file, or in the Claude Desktop configuration:
 
@@ -682,7 +729,7 @@ You can set these variables in your environment, in a `.env` file, or in the Cla
         "CLICKHOUSE_PASSWORD": "<clickhouse-password>",
         "CLICKHOUSE_DATABASE": "<optional-database>",
         "CLICKHOUSE_MCP_SERVER_TRANSPORT": "stdio",
-        "CLICKHOUSE_MCP_BIND_HOST": "127.0.0.1",
+        "CLICKHOUSE_MCP_BIND_HOST": "<bind-host>",
         "CLICKHOUSE_MCP_BIND_PORT": "8000"
       }
     }
