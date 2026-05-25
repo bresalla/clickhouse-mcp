@@ -120,3 +120,20 @@ def test_server_host_name_omitted_when_unset(monkeypatch: pytest.MonkeyPatch):
     client_config = config.get_client_config()
 
     assert "server_host_name" not in client_config
+
+
+def test_native_protocol_defaults_to_9440(monkeypatch: pytest.MonkeyPatch):
+    """Native protocol should default to TLS port 9440."""
+    monkeypatch.setenv("CLICKHOUSE_HOST", "clickhouse-stg-portal.cloud-ng.net")
+    monkeypatch.setenv("CLICKHOUSE_USER", "test")
+    monkeypatch.setenv("CLICKHOUSE_PASSWORD", "test")
+    monkeypatch.setenv("CLICKHOUSE_PROTOCOL", "native")
+    monkeypatch.delenv("CLICKHOUSE_PORT", raising=False)
+    monkeypatch.delenv("CLICKHOUSE_SECURE", raising=False)
+
+    config = ClickHouseConfig()
+    client_config = config.get_client_config()
+
+    assert client_config["protocol"] == "native"
+    assert client_config["port"] == 9440
+    assert client_config["secure"] is True

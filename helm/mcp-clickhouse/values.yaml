@@ -9,16 +9,32 @@ service:
   type: ClusterIP
   port: 8000
 
+ingress:
+  enabled: false
+  ingressClassName: nginx
+  annotations: {}
+  host: mcp-clickhouse.pib8.cloud-ng.net
+  path: /
+  pathType: Prefix
+  tls:
+    enabled: true
+    secretName: pib8.cloud-ng.net.tls
+
 container:
   port: 8000
 
 server:
   transport: http
+  bindHost: 0.0.0.0
+  bindPort: 8000
   authDisabled: true
 
 clickhouse:
   host: clickhouse-stg-portal.cloud-ng.net
+  protocol: native
   port: 9440
+  secure: true
+  verify: true
   secret:
     name: access-log-reporter-secret
     userKey: DATABASES_TLVQAE2E_USER

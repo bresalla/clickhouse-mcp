@@ -23,6 +23,18 @@ class TransportType(str, Enum):
         return [transport.value for transport in cls]
 
 
+class ClickHouseProtocol(str, Enum):
+    """Supported ClickHouse connection protocols."""
+
+    HTTP = "http"
+    NATIVE = "native"
+
+    @classmethod
+    def values(cls) -> list[str]:
+        """Get all valid protocol values."""
+        return [protocol.value for protocol in cls]
+
+
 @dataclass
 class ClickHouseConfig:
     """Configuration for ClickHouse connection settings.
@@ -72,12 +84,28 @@ class ClickHouseConfig:
     def port(self) -> int:
         """Get the ClickHouse port.
 
-        Defaults to 8443 if secure=True, 8123 if secure=False.
+        Defaults vary by protocol:
+        - HTTP: 8443 if secure=True, 8123 if secure=False
+        - Native: 9440 if secure=True, 9000 if secure=False
         Can be overridden by CLICKHOUSE_PORT environment variable.
         """
         if "CLICKHOUSE_PORT" in os.environ:
             return int(os.environ["CLICKHOUSE_PORT"])
+        if self.protocol == ClickHouseProtocol.NATIVE.value:
+            return 9440 if self.secure else 9000
         return 8443 if self.secure else 8123
+
+    @property
+    def protocol(self) -> str:
+        """Get ClickHouse connection protocol.
+
+        Default: "http"
+        """
+        protocol = os.getenv("CLICKHOUSE_PROTOCOL", ClickHouseProtocol.HTTP.value).lower()
+        if protocol not in ClickHouseProtocol.values():
+            valid_options = ", ".join(f'"{t}"' for t in ClickHouseProtocol.values())
+            raise ValueError(f"Invalid protocol '{protocol}'. Valid options: {valid_options}")
+        return protocol
 
     @property
     def username(self) -> str:
@@ -166,17 +194,20 @@ class ClickHouseConfig:
             dict: Configuration ready to be passed to clickhouse_connect.get_client()
         """
         config = {
+            "protocol": self.protocol,
             "host": self.host,
             "port": self.port,
             "username": self.username,
             "password": self.password,
-            "interface": "https" if self.secure else "http",
             "secure": self.secure,
             "verify": self.verify,
             "connect_timeout": self.connect_timeout,
             "send_receive_timeout": self.send_receive_timeout,
             "client_name": "mcp_clickhouse",
         }
+
+        if self.protocol == ClickHouseProtocol.HTTP.value:
+            config["interface"] = "https" if self.secure else "http"
 
         # Add optional role if set
         if self.role:

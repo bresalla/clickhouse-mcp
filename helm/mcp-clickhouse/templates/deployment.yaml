@@ -27,8 +27,14 @@ spec:
           env:
             - name: CLICKHOUSE_HOST
               value: "{{ .Values.clickhouse.host }}"
+            - name: CLICKHOUSE_PROTOCOL
+              value: "{{ .Values.clickhouse.protocol }}"
             - name: CLICKHOUSE_PORT
               value: "{{ .Values.clickhouse.port | toString }}"
+            - name: CLICKHOUSE_SECURE
+              value: "{{ .Values.clickhouse.secure | toString }}"
+            - name: CLICKHOUSE_VERIFY
+              value: "{{ .Values.clickhouse.verify | toString }}"
             - name: CLICKHOUSE_USER
               valueFrom:
                 secretKeyRef:
@@ -41,15 +47,25 @@ spec:
                   key: {{ .Values.clickhouse.secret.passwordKey }}
             - name: CLICKHOUSE_MCP_AUTH_DISABLED
               value: "{{ .Values.server.authDisabled | toString }}"
+            - name: CLICKHOUSE_MCP_SERVER_TRANSPORT
+              value: "{{ .Values.server.transport }}"
+            - name: CLICKHOUSE_MCP_BIND_HOST
+              value: "{{ .Values.server.bindHost }}"
+            - name: CLICKHOUSE_MCP_BIND_PORT
+              value: "{{ .Values.server.bindPort | toString }}"
           readinessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 5
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
             periodSeconds: 10
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 15
+            initialDelaySeconds: 45
+            timeoutSeconds: 5
             periodSeconds: 20
+            failureThreshold: 6

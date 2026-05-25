@@ -15,7 +15,10 @@ from .mcp_server import (
 )
 
 
-if os.getenv("MCP_CLICKHOUSE_TRUSTSTORE_DISABLE", None) != "1":
+if (
+    os.getenv("MCP_CLICKHOUSE_TRUSTSTORE_DISABLE", None) != "1"
+    and os.getenv("CLICKHOUSE_PROTOCOL", "http").lower() != "native"
+):
     try:
         import truststore
         truststore.inject_into_ssl()

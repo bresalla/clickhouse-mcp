@@ -1,0 +1,7 @@
+{
+  "servers": {
+    "mcp-clickhouse": {
+      "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
+    }
+  }
+}

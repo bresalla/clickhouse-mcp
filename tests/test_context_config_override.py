@@ -2,6 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
+import os
 
 from fastmcp import Client
 from fastmcp.server.middleware import Middleware, MiddlewareContext, CallNext
@@ -28,6 +29,13 @@ class ConfigOverrideMiddleware(Middleware):
 
 class TestConfigOverrideUnit:
     """Unit tests for the config override merge logic in create_clickhouse_client."""
+
+    @pytest.fixture(autouse=True)
+    def _set_required_env(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setenv("CLICKHOUSE_HOST", "localhost")
+        monkeypatch.setenv("CLICKHOUSE_USER", "default")
+        monkeypatch.setenv("CLICKHOUSE_PASSWORD", "test")
+        monkeypatch.delenv("CLICKHOUSE_PROTOCOL", raising=False)
 
     @patch("mcp_clickhouse.mcp_server.clickhouse_connect")
     @patch("mcp_clickhouse.mcp_server.get_context")
@@ -85,6 +93,33 @@ class TestConfigOverrideUnit:
 
         call_kwargs = mock_cc.get_client.call_args[1]
         assert "host" in call_kwargs
+
+    @patch("mcp_clickhouse.mcp_server.NativeClickHouseDriverClient")
+    @patch("mcp_clickhouse.mcp_server.clickhouse_connect")
+    @patch("mcp_clickhouse.mcp_server.get_context")
+    @patch.dict(
+        os.environ,
+        {
+            "CLICKHOUSE_HOST": "localhost",
+            "CLICKHOUSE_USER": "default",
+            "CLICKHOUSE_PASSWORD": "test",
+        },
+        clear=False,
+    )
+    def test_native_protocol_uses_native_driver(self, mock_get_context, mock_cc, mock_native_cls):
+        """When protocol=native, create_clickhouse_client should use clickhouse-driver."""
+        mock_ctx = MagicMock()
+        mock_ctx.get_state.return_value = {"protocol": "native", "port": 9440}
+        mock_get_context.return_value = mock_ctx
+
+        mock_native = MagicMock()
+        mock_native.execute.return_value = [("24.1",)]
+        mock_native_cls.return_value = mock_native
+
+        create_clickhouse_client()
+
+        assert mock_native_cls.called
+        mock_cc.get_client.assert_not_called()
 
 
 @pytest.fixture

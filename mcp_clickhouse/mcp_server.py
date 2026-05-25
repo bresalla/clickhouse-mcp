@@ -12,6 +12,10 @@ from typing import Any, Dict, List, Optional
 import clickhouse_connect
 from cachetools import TTLCache
 from clickhouse_connect.driver.binding import format_query_value
+try:
+    from clickhouse_driver import Client as NativeClickHouseDriverClient
+except ImportError:  # pragma: no cover - optional dependency at runtime
+    NativeClickHouseDriverClient = None
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
@@ -73,6 +77,62 @@ atexit.register(lambda: QUERY_EXECUTOR.shutdown(wait=True))
 load_dotenv()
 
 _HTTP_TRANSPORTS = (TransportType.HTTP.value, TransportType.SSE.value)
+
+
+class NativeQueryResult:
+    """Minimal result shape compatible with clickhouse_connect query responses."""
+
+    def __init__(self, rows: list[tuple], column_types: list[tuple[str, str]]):
+        self.result_rows = rows
+        self.column_names = [name for name, _ in column_types]
+
+
+class NativeClientAdapter:
+    """Adapter exposing the clickhouse_connect-like API on top of clickhouse-driver."""
+
+    def __init__(self, native_client):
+        self._native_client = native_client
+
+    @property
+    def server_version(self) -> str:
+        version_rows = self._native_client.execute("SELECT version()")
+        if version_rows and version_rows[0]:
+            return str(version_rows[0][0])
+        return "unknown"
+
+    @property
+    def server_settings(self) -> Dict[str, Any]:
+        try:
+            readonly_rows = self._native_client.execute(
+                "SELECT value FROM system.settings WHERE name = 'readonly'"
+            )
+            if readonly_rows and readonly_rows[0]:
+                return {"readonly": str(readonly_rows[0][0])}
+        except Exception:
+            logger.debug("Failed to query readonly setting for native client", exc_info=True)
+        return {}
+
+    def command(self, query: str) -> Any:
+        rows = self._native_client.execute(query)
+        if not rows:
+            return ""
+
+        upper = query.strip().upper()
+        if upper.startswith("SHOW DATABASES"):
+            return "\n".join(str(row[0]) for row in rows)
+
+        if len(rows[0]) == 1:
+            return "\n".join(str(row[0]) for row in rows)
+
+        return rows
+
+    def query(self, query: str, settings: Optional[dict] = None) -> NativeQueryResult:
+        rows, column_types = self._native_client.execute(
+            query,
+            settings=settings,
+            with_column_types=True,
+        )
+        return NativeQueryResult(rows, column_types)
 
 
 def _resolve_auth(mcp_config) -> Dict[str, Any]:
@@ -557,7 +617,9 @@ def create_clickhouse_client():
         # If we're outside a request context, just proceed with the default config
         pass
 
+    protocol = client_config.get("protocol", "http")
     config_fields = [
+        f"protocol={protocol}",
         f"secure={client_config['secure']}",
         f"verify={client_config['verify']}",
         f"connect_timeout={client_config['connect_timeout']}s",
@@ -573,7 +635,39 @@ def create_clickhouse_client():
     logger.info(log_msg)
 
     try:
-        client = clickhouse_connect.get_client(**client_config)
+        if protocol == "native":
+            if NativeClickHouseDriverClient is None:
+                raise RuntimeError(
+                    "Native ClickHouse protocol requested but clickhouse-driver is not installed. "
+                    "Install dependency: clickhouse-driver"
+                )
+
+            native_kwargs = {
+                "host": client_config["host"],
+                "port": client_config["port"],
+                "user": client_config["username"],
+                "password": client_config["password"],
+                "secure": client_config["secure"],
+                "verify": client_config["verify"],
+                "connect_timeout": client_config["connect_timeout"],
+                "send_receive_timeout": client_config["send_receive_timeout"],
+                "client_name": client_config["client_name"],
+            }
+
+            if client_config.get("database"):
+                native_kwargs["database"] = client_config["database"]
+
+            if client_config.get("settings"):
+                native_kwargs["settings"] = client_config["settings"]
+
+            if client_config.get("server_host_name"):
+                native_kwargs["server_hostname"] = client_config["server_host_name"]
+
+            native_client = NativeClickHouseDriverClient(**native_kwargs)
+            client = NativeClientAdapter(native_client)
+        else:
+            client = clickhouse_connect.get_client(**client_config)
+
         # Test the connection
         version = client.server_version
         logger.info(f"Successfully connected to ClickHouse server version {version}")

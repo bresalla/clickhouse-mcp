@@ -1,44 +1,115 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "docker: build image (release + sha)",
-      "type": "shell",
-      "command": "$IMAGE_REPO = \"docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse\"; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { \"1.0.0\" }; $IMAGE_SHA = (git rev-parse --short HEAD).Trim(); docker build -t \"$IMAGE_REPO:$IMAGE_TAG\" -t \"$IMAGE_REPO:$IMAGE_SHA\" .",
-      "problemMatcher": []
-    },
-    {
-      "label": "docker: push image (release + sha)",
-      "type": "shell",
-      "command": "$IMAGE_REPO = \"docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse\"; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { \"1.0.0\" }; $IMAGE_SHA = (git rev-parse --short HEAD).Trim(); docker push \"$IMAGE_REPO:$IMAGE_TAG\"; docker push \"$IMAGE_REPO:$IMAGE_SHA\"",
-      "dependsOn": [
-        "docker: build image (release + sha)"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "helm: lint and template",
-      "type": "shell",
-      "command": "helm lint helm/mcp-clickhouse; helm template mcp-clickhouse helm/mcp-clickhouse",
-      "problemMatcher": []
-    },
-    {
-      "label": "helm: deploy localdev",
-      "type": "shell",
-      "command": "$IMAGE_REPO = \"docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse\"; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { \"1.0.0\" }; helm upgrade --install mcp-clickhouse helm/mcp-clickhouse --namespace localdev --create-namespace --set image.repository=$IMAGE_REPO --set image.tag=$IMAGE_TAG",
-      "dependsOn": [
-        "helm: lint and template"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "k8s: smoke check localdev",
-      "type": "shell",
-      "command": "kubectl -n localdev rollout status deployment/mcp-clickhouse; kubectl -n localdev get pods,svc",
-      "dependsOn": [
-        "helm: deploy localdev"
-      ],
-      "problemMatcher": []
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "docker: build image (release + sha)",
+			"type": "shell",
+			"command": "$IMAGE_REPO = \"docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse\"; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { \"1.0.0\" }; $IMAGE_SHA = (git rev-parse --short HEAD).Trim(); docker build -t \"$IMAGE_REPO:$IMAGE_TAG\" -t \"$IMAGE_REPO:$IMAGE_SHA\" .",
+			"problemMatcher": []
+		},
+		{
+			"label": "docker: push image (release + sha)",
+			"type": "shell",
+			"command": "$IMAGE_REPO = \"docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse\"; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { \"1.0.0\" }; $IMAGE_SHA = (git rev-parse --short HEAD).Trim(); docker push \"$IMAGE_REPO:$IMAGE_TAG\"; docker push \"$IMAGE_REPO:$IMAGE_SHA\"",
+			"dependsOn": [
+				"docker: build image (release + sha)"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "helm: lint and template",
+			"type": "shell",
+			"command": "helm lint helm/mcp-clickhouse; helm template mcp-clickhouse helm/mcp-clickhouse",
+			"problemMatcher": []
+		},
+		{
+			"label": "helm: deploy localdev",
+			"type": "shell",
+			"command": "$IMAGE_REPO = \"docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse\"; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { \"1.0.0\" }; helm upgrade --install mcp-clickhouse helm/mcp-clickhouse --namespace localdev --create-namespace --set image.repository=$IMAGE_REPO --set image.tag=$IMAGE_TAG",
+			"dependsOn": [
+				"helm: lint and template"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "k8s: smoke check localdev",
+			"type": "shell",
+			"command": "$envFile = '.env.local'; if (Test-Path $envFile) { Get-Content $envFile | ForEach-Object { $line = $_.Trim(); if ($line -and -not $line.StartsWith('#')) { $kv = $line -split '=', 2; if ($kv.Count -eq 2) { [Environment]::SetEnvironmentVariable($kv[0].Trim(), $kv[1].Trim(), 'Process') } } } }; if ($env:KUBECONFIG -like '$*') { $refName = $env:KUBECONFIG.Substring(1); $resolved = [Environment]::GetEnvironmentVariable($refName, 'Process'); if ($resolved) { $env:KUBECONFIG = $resolved } }; kubectl -n localdev rollout status deployment/mcp-clickhouse; kubectl -n localdev get pods,svc",
+			"dependsOn": [
+				"helm: deploy localdev"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "docker: publish image (release + sha)",
+			"type": "shell",
+			"command": "pwsh",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$IMAGE_REPO = \"docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse\"; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { \"1.0.0\" }; $IMAGE_SHA = (git rev-parse --short HEAD).Trim(); docker build -t \"$IMAGE_REPO:$IMAGE_TAG\" -t \"$IMAGE_REPO:$IMAGE_SHA\" .; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; docker push \"$IMAGE_REPO:$IMAGE_TAG\"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; docker push \"$IMAGE_REPO:$IMAGE_SHA\""
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "docker: publish image (release + sha)",
+			"type": "shell",
+			"command": "$IMAGE_REPO = 'docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse'; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { '1.0.0' }; $IMAGE_SHA = (git rev-parse --short HEAD).Trim(); docker build -t \"${IMAGE_REPO}:$IMAGE_TAG\" -t \"${IMAGE_REPO}:$IMAGE_SHA\" .; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; docker push \"${IMAGE_REPO}:$IMAGE_TAG\"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; docker push \"${IMAGE_REPO}:$IMAGE_SHA\"",
+			"problemMatcher": []
+		},
+		{
+			"label": "docker: publish image (release + sha) v2",
+			"type": "shell",
+			"command": "$IMAGE_REPO = 'docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse'; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { '1.0.0' }; $IMAGE_SHA = (git rev-parse --short HEAD).Trim(); docker build -t \"${IMAGE_REPO}:$IMAGE_TAG\" -t \"${IMAGE_REPO}:$IMAGE_SHA\" .; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; docker push \"${IMAGE_REPO}:$IMAGE_TAG\"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; docker push \"${IMAGE_REPO}:$IMAGE_SHA\"",
+			"problemMatcher": []
+		},
+		{
+			"label": "docker: publish image (release + sha) v3",
+			"type": "shell",
+			"command": "$IMAGE_REPO = 'docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse'; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { '1.0.0' }; $IMAGE_SHA = (git rev-parse --short HEAD).Trim(); docker build --provenance=false -t \"${IMAGE_REPO}:$IMAGE_TAG\" -t \"${IMAGE_REPO}:$IMAGE_SHA\" .; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; docker push \"${IMAGE_REPO}:$IMAGE_TAG\"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; docker push \"${IMAGE_REPO}:$IMAGE_SHA\"",
+			"problemMatcher": []
+		},
+		{
+			"label": "helm: deploy localdev v2",
+			"type": "shell",
+			"command": "$envFile = '.env.local'; if (Test-Path $envFile) { Get-Content $envFile | ForEach-Object { $line = $_.Trim(); if ($line -and -not $line.StartsWith('#')) { $kv = $line -split '=', 2; if ($kv.Count -eq 2) { [Environment]::SetEnvironmentVariable($kv[0].Trim(), $kv[1].Trim(), 'Process') } } } }; if ($env:KUBECONFIG -like '$*') { $refName = $env:KUBECONFIG.Substring(1); $resolved = [Environment]::GetEnvironmentVariable($refName, 'Process'); if ($resolved) { $env:KUBECONFIG = $resolved } }; $IMAGE_REPO = if ($env:IMAGE_REPO) { $env:IMAGE_REPO } else { 'docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse' }; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { '1.0.0' }; helm lint helm/mcp-clickhouse; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; helm template mcp-clickhouse helm/mcp-clickhouse | Out-Null; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; helm upgrade --install mcp-clickhouse helm/mcp-clickhouse --namespace localdev --create-namespace --set image.repository=$IMAGE_REPO --set image.tag=$IMAGE_TAG",
+			"problemMatcher": []
+		},
+		{
+			"label": "helm: deploy localdev v2",
+			"type": "shell",
+			"command": "$envFile = '.env.local'; if (Test-Path $envFile) { Get-Content $envFile | ForEach-Object { $line = $_.Trim(); if ($line -and -not $line.StartsWith('#')) { $kv = $line -split '=', 2; if ($kv.Count -eq 2) { [Environment]::SetEnvironmentVariable($kv[0].Trim(), $kv[1].Trim(), 'Process') } } } }; if ($env:KUBECONFIG -like '$*') { $refName = $env:KUBECONFIG.Substring(1); $resolved = [Environment]::GetEnvironmentVariable($refName, 'Process'); if ($resolved) { $env:KUBECONFIG = $resolved } }; $IMAGE_REPO = if ($env:IMAGE_REPO) { $env:IMAGE_REPO } else { 'docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse' }; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { '1.0.0' }; helm lint helm/mcp-clickhouse; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; helm template mcp-clickhouse helm/mcp-clickhouse | Out-Null; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; helm upgrade --install mcp-clickhouse helm/mcp-clickhouse --namespace localdev --create-namespace --set image.repository=$IMAGE_REPO --set image.tag=$IMAGE_TAG",
+			"problemMatcher": []
+		},
+		{
+			"label": "k8s: smoke check localdev",
+			"type": "shell",
+			"command": "kubectl -n localdev rollout status deployment/mcp-clickhouse; kubectl -n localdev get pods,svc",
+			"problemMatcher": []
+		},
+		{
+			"label": "k8s: smoke check localdev v2",
+			"type": "shell",
+			"command": "kubectl -n localdev rollout status deployment/mcp-clickhouse; kubectl -n localdev get pods,svc",
+			"problemMatcher": []
+		},
+		{
+			"label": "k8s: smoke check localdev",
+			"type": "shell",
+			"command": "$envFile = '.env.local'; if (Test-Path $envFile) { Get-Content $envFile | ForEach-Object { $line = $_.Trim(); if ($line -and -not $line.StartsWith('#')) { $kv = $line -split '=', 2; if ($kv.Count -eq 2) { [Environment]::SetEnvironmentVariable($kv[0].Trim(), $kv[1].Trim(), 'Process') } } } }; if ($env:KUBECONFIG -like '$*') { $refName = $env:KUBECONFIG.Substring(1); $resolved = [Environment]::GetEnvironmentVariable($refName, 'Process'); if ($resolved) { $env:KUBECONFIG = $resolved } }; kubectl -n localdev rollout status deployment/mcp-clickhouse; kubectl -n localdev get pods,svc",
+			"problemMatcher": []
+		},
+		{
+			"label": "k8s: smoke check localdev v3",
+			"type": "shell",
+			"command": "$envFile = '.env.local'; if (Test-Path $envFile) { Get-Content $envFile | ForEach-Object { $line = $_.Trim(); if ($line -and -not $line.StartsWith('#')) { $kv = $line -split '=', 2; if ($kv.Count -eq 2) { [Environment]::SetEnvironmentVariable($kv[0].Trim(), $kv[1].Trim(), 'Process') } } } }; if ($env:KUBECONFIG -like '$*') { $refName = $env:KUBECONFIG.Substring(1); $resolved = [Environment]::GetEnvironmentVariable($refName, 'Process'); if ($resolved) { $env:KUBECONFIG = $resolved } }; kubectl -n localdev rollout status deployment/mcp-clickhouse; kubectl -n localdev get pods,svc",
+			"problemMatcher": []
+		},
+		{
+			"label": "k8s: validate mcp localdev",
+			"type": "shell",
+			"command": "$envFile = '.env.local'; if (Test-Path $envFile) { Get-Content $envFile | ForEach-Object { $line = $_.Trim(); if ($line -and -not $line.StartsWith('#')) { $kv = $line -split '=', 2; if ($kv.Count -eq 2) { [Environment]::SetEnvironmentVariable($kv[0].Trim(), $kv[1].Trim(), 'Process') } } } }; if ($env:KUBECONFIG -like '$*') { $refName = $env:KUBECONFIG.Substring(1); $resolved = [Environment]::GetEnvironmentVariable($refName, 'Process'); if ($resolved) { $env:KUBECONFIG = $resolved } }; kubectl -n localdev rollout status deployment/mcp-clickhouse --timeout=420s; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $pod = kubectl -n localdev get pods -l app.kubernetes.io/name=mcp-clickhouse --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}'; if (-not $pod) { Write-Error 'No mcp-clickhouse pod found'; exit 1 }; $ready = kubectl -n localdev get pod $pod -o jsonpath='{.status.containerStatuses[0].ready}'; if ($ready -ne 'true') { Write-Error \"Pod $pod is not ready\"; exit 1 }; Write-Output \"POD=$pod READY=$ready\"; kubectl -n localdev exec $pod -- python -c \"import urllib.request; u='http://127.0.0.1:8000/health'; r=urllib.request.urlopen(u, timeout=20); print('HEALTH_STATUS', r.getcode()); print(r.read().decode('utf-8', errors='replace'))\"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $recentLogs = kubectl -n localdev logs $pod --since=2m; if ($recentLogs -match 'Failed to connect to ClickHouse|Health check failed|503 Service Unavailable') { Write-Error 'Recent logs contain MCP/ClickHouse health failures'; exit 1 }; Write-Output 'MCP_VALIDATION_OK'",
+			"problemMatcher": []
+		}
+	]
 }

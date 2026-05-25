@@ -10,6 +10,7 @@ dependencies = [
      "fastmcp>=2.0.0,<3.0.0",
      "python-dotenv>=1.0.1",
      "clickhouse-connect>=0.8.16",
+    "clickhouse-driver>=0.2.9",
      "truststore>=0.10",
      "cachetools>=5.5.0",
 ]
