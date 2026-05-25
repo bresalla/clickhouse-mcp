@@ -87,15 +87,12 @@ Startup fails if none of these are configured for HTTP/SSE transports.
 
 3. Configure your MCP client to include the token in requests:
 
-   For Claude Desktop with HTTP/SSE transport:
+   For a URL-based MCP client configuration:
    ```json
    {
-     "mcpServers": {
+     "servers": {
        "mcp-clickhouse": {
-         "url": "http://<mcp-host>:<mcp-port>",
-         "headers": {
-           "Authorization": "Bearer <generated-token>"
-         }
+         "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
        }
      }
    }
@@ -131,131 +128,47 @@ export CLICKHOUSE_MCP_AUTH_DISABLED=true
 
 This MCP server supports both ClickHouse and chDB. You can enable either or both depending on your needs.
 
-1. Open the Claude Desktop configuration file located at:
-  * On macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-  * On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+1. Open `.vscode/mcp.json` in this workspace.
 
-2. Add the following:
+2. Add the following URL-based server definition:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "mcp-clickhouse": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--with",
-        "mcp-clickhouse",
-        "--python",
-        "3.10",
-        "mcp-clickhouse"
-      ],
-      "env": {
-        "CLICKHOUSE_HOST": "<clickhouse-host>",
-        "CLICKHOUSE_PORT": "<clickhouse-port>",
-        "CLICKHOUSE_USER": "<clickhouse-user>",
-        "CLICKHOUSE_PASSWORD": "<clickhouse-password>",
-        "CLICKHOUSE_ROLE": "<clickhouse-role>",
-        "CLICKHOUSE_SECURE": "true",
-        "CLICKHOUSE_VERIFY": "true",
-        "CLICKHOUSE_CONNECT_TIMEOUT": "30",
-        "CLICKHOUSE_SEND_RECEIVE_TIMEOUT": "30"
-      }
+      "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
     }
   }
 }
 ```
 
-Update the environment variables to point to your own ClickHouse service.
+Use the same URL-based entry in any MCP client that supports direct server URLs.
 
-Or, if you'd like to try it out with a ClickHouse SQL Playground instance, you can use the following config:
+For chDB (embedded ClickHouse engine), use the same URL-based configuration pattern:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "mcp-clickhouse": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--with",
-        "mcp-clickhouse",
-        "--python",
-        "3.10",
-        "mcp-clickhouse"
-      ],
-      "env": {
-        "CLICKHOUSE_HOST": "<clickhouse-playground-host>",
-        "CLICKHOUSE_PORT": "<clickhouse-port>",
-        "CLICKHOUSE_USER": "<clickhouse-user>",
-        "CLICKHOUSE_PASSWORD": "",
-        "CLICKHOUSE_SECURE": "true",
-        "CLICKHOUSE_VERIFY": "true",
-        "CLICKHOUSE_CONNECT_TIMEOUT": "30",
-        "CLICKHOUSE_SEND_RECEIVE_TIMEOUT": "30"
-      }
+      "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
     }
   }
 }
 ```
 
-For chDB (embedded ClickHouse engine), add the following configuration:
+You can also use the same URL-based entry when ClickHouse and chDB are enabled together:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "mcp-clickhouse": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--with",
-        "mcp-clickhouse[chdb]",
-        "--python",
-        "3.10",
-        "mcp-clickhouse"
-      ],
-      "env": {
-        "CHDB_ENABLED": "true",
-        "CLICKHOUSE_ENABLED": "false",
-        "CHDB_DATA_PATH": "/path/to/chdb/data"
-      }
+      "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
     }
   }
 }
 ```
 
-You can also enable both ClickHouse and chDB simultaneously:
-
-```json
-{
-  "mcpServers": {
-    "mcp-clickhouse": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--with",
-        "mcp-clickhouse[chdb]",
-        "--python",
-        "3.10",
-        "mcp-clickhouse"
-      ],
-      "env": {
-        "CLICKHOUSE_HOST": "<clickhouse-host>",
-        "CLICKHOUSE_PORT": "<clickhouse-port>",
-        "CLICKHOUSE_USER": "<clickhouse-user>",
-        "CLICKHOUSE_PASSWORD": "<clickhouse-password>",
-        "CLICKHOUSE_SECURE": "true",
-        "CLICKHOUSE_VERIFY": "true",
-        "CLICKHOUSE_CONNECT_TIMEOUT": "30",
-        "CLICKHOUSE_SEND_RECEIVE_TIMEOUT": "30",
-        "CHDB_ENABLED": "true",
-        "CHDB_DATA_PATH": "/path/to/chdb/data"
-      }
-    }
-  }
-}
-```
-
-3. Locate the command entry for `uv` and replace it with the absolute path to the `uv` executable. This ensures that the correct version of `uv` is used when starting the server. On a mac, you can find this path using `which uv`.
+3. No local command path is needed for the URL-based setup.
 
 4. Restart Claude Desktop to apply the changes.
 
@@ -267,27 +180,7 @@ To add this server to the MCP server list in VS Code for this workspace, create 
 {
   "servers": {
     "mcp-clickhouse": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--with",
-        "mcp-clickhouse",
-        "--python",
-        "3.10",
-        "mcp-clickhouse"
-      ],
-      "env": {
-        "CLICKHOUSE_HOST": "<clickhouse-host>",
-        "CLICKHOUSE_PROTOCOL": "native",
-        "CLICKHOUSE_PORT": "<clickhouse-port>",
-        "CLICKHOUSE_USER": "<clickhouse-user>",
-        "CLICKHOUSE_PASSWORD": "<clickhouse-password>",
-        "CLICKHOUSE_SECURE": "true",
-        "CLICKHOUSE_VERIFY": "true",
-        "CLICKHOUSE_CONNECT_TIMEOUT": "30",
-        "CLICKHOUSE_SEND_RECEIVE_TIMEOUT": "30",
-        "CLICKHOUSE_MCP_SERVER_TRANSPORT": "stdio"
-      }
+      "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
     }
   }
 }
@@ -345,49 +238,25 @@ If you prefer to use the system Python installation instead of uv, you can insta
    python3 -m pip install --upgrade mcp-clickhouse
    ```
 
-2. Update your Claude Desktop configuration to use Python directly:
+2. Use the URL-based server definition:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "mcp-clickhouse": {
-      "command": "python3",
-      "args": [
-        "-m",
-        "mcp_clickhouse.main"
-      ],
-      "env": {
-        "CLICKHOUSE_HOST": "<clickhouse-host>",
-        "CLICKHOUSE_PORT": "<clickhouse-port>",
-        "CLICKHOUSE_USER": "<clickhouse-user>",
-        "CLICKHOUSE_PASSWORD": "<clickhouse-password>",
-        "CLICKHOUSE_SECURE": "true",
-        "CLICKHOUSE_VERIFY": "true",
-        "CLICKHOUSE_CONNECT_TIMEOUT": "30",
-        "CLICKHOUSE_SEND_RECEIVE_TIMEOUT": "30"
-      }
+      "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
     }
   }
 }
 ```
 
-Alternatively, you can use the installed script directly:
+Alternatively, use the same URL-based entry if your client supports it directly:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "mcp-clickhouse": {
-      "command": "mcp-clickhouse",
-      "env": {
-        "CLICKHOUSE_HOST": "<clickhouse-host>",
-        "CLICKHOUSE_PORT": "<clickhouse-port>",
-        "CLICKHOUSE_USER": "<clickhouse-user>",
-        "CLICKHOUSE_PASSWORD": "<clickhouse-password>",
-        "CLICKHOUSE_SECURE": "true",
-        "CLICKHOUSE_VERIFY": "true",
-        "CLICKHOUSE_CONNECT_TIMEOUT": "30",
-        "CLICKHOUSE_SEND_RECEIVE_TIMEOUT": "30"
-      }
+      "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
     }
   }
 }
@@ -431,16 +300,9 @@ def setup_middleware(mcp):
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "mcp-clickhouse": {
-      "command": "uv",
-      "args": ["run", "--with", "mcp-clickhouse", "--python", "3.10", "mcp-clickhouse"],
-      "env": {
-        "CLICKHOUSE_HOST": "<clickhouse-host>",
-        "CLICKHOUSE_USER": "<clickhouse-user>",
-        "CLICKHOUSE_PASSWORD": "<clickhouse-password>",
-        "MCP_MIDDLEWARE_MODULE": "my_middleware"
-      }
+      "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
     }
   }
 }
@@ -457,8 +319,12 @@ An example middleware module is provided in `example_middleware.py` showing comm
 
 To use the example:
 ```json
-"env": {
-  "MCP_MIDDLEWARE_MODULE": "example_middleware"
+{
+  "servers": {
+    "mcp-clickhouse": {
+      "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
+    }
+  }
 }
 ```
 
@@ -708,47 +574,16 @@ When using HTTP transport, the server will run on the configured port (default 8
 - MCP endpoint: `http://<mcp-host>:<mcp-port>/mcp`
 - Health check: `http://<mcp-host>:<mcp-port>/health`
 
-You can set these variables in your environment, in a `.env` file, or in the Claude Desktop configuration:
+You can set these variables in your environment, in a `.env` file, or in `.vscode/mcp.json`:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "mcp-clickhouse": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--with",
-        "mcp-clickhouse",
-        "--python",
-        "3.10",
-        "mcp-clickhouse"
-      ],
-      "env": {
-        "CLICKHOUSE_HOST": "<clickhouse-host>",
-        "CLICKHOUSE_USER": "<clickhouse-user>",
-        "CLICKHOUSE_PASSWORD": "<clickhouse-password>",
-        "CLICKHOUSE_DATABASE": "<optional-database>",
-        "CLICKHOUSE_MCP_SERVER_TRANSPORT": "stdio",
-        "CLICKHOUSE_MCP_BIND_HOST": "<bind-host>",
-        "CLICKHOUSE_MCP_BIND_PORT": "8000"
-      }
+      "url": "https://mcp-clickhouse.pib8.cloud-ng.net/mcp"
     }
   }
 }
-```
-
-Note: The bind host and port settings are only used when transport is set to "http" or "sse".
-
-### Running tests
-
-```bash
-uv sync --all-extras --dev # install dev dependencies
-uv run ruff check . # run linting
-
-docker compose up -d test_services # start ClickHouse
-uv run pytest -v tests
-uv run pytest -v tests/test_tool.py # ClickHouse only
-CHDB_ENABLED=true uv run --extra chdb pytest -v tests/test_chdb_tool.py # chDB only
 ```
 
 ## YouTube Overview
