@@ -1,0 +1,25 @@
+namespace: monitoring
+
+image:
+  repository: docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+container:
+  port: 8000
+
+server:
+  transport: http
+  authDisabled: true
+
+clickhouse:
+  host: clickhouse-stg-portal.cloud-ng.net
+  port: 9440
+  secret:
+    name: access-log-reporter-secret
+    userKey: DATABASES_TLVQAE2E_USER
+    passwordKey: DATABASES_TLVQAE2E_PASSWORD

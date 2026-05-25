@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "docker: build image (release + sha)",
+      "type": "shell",
+      "command": "$IMAGE_REPO = \"docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse\"; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { \"1.0.0\" }; $IMAGE_SHA = (git rev-parse --short HEAD).Trim(); docker build -t \"$IMAGE_REPO:$IMAGE_TAG\" -t \"$IMAGE_REPO:$IMAGE_SHA\" .",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: push image (release + sha)",
+      "type": "shell",
+      "command": "$IMAGE_REPO = \"docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse\"; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { \"1.0.0\" }; $IMAGE_SHA = (git rev-parse --short HEAD).Trim(); docker push \"$IMAGE_REPO:$IMAGE_TAG\"; docker push \"$IMAGE_REPO:$IMAGE_SHA\"",
+      "dependsOn": [
+        "docker: build image (release + sha)"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "helm: lint and template",
+      "type": "shell",
+      "command": "helm lint helm/mcp-clickhouse; helm template mcp-clickhouse helm/mcp-clickhouse",
+      "problemMatcher": []
+    },
+    {
+      "label": "helm: deploy localdev",
+      "type": "shell",
+      "command": "$IMAGE_REPO = \"docker-private.repository.itools.radwarecloud.com/anatolyb/mcp-clickhouse\"; $IMAGE_TAG = if ($env:IMAGE_TAG) { $env:IMAGE_TAG } else { \"1.0.0\" }; helm upgrade --install mcp-clickhouse helm/mcp-clickhouse --namespace localdev --create-namespace --set image.repository=$IMAGE_REPO --set image.tag=$IMAGE_TAG",
+      "dependsOn": [
+        "helm: lint and template"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "k8s: smoke check localdev",
+      "type": "shell",
+      "command": "kubectl -n localdev rollout status deployment/mcp-clickhouse; kubectl -n localdev get pods,svc",
+      "dependsOn": [
+        "helm: deploy localdev"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

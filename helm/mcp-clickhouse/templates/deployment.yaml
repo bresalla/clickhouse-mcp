@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mcp-clickhouse.fullname" . }}
+  labels:
+    {{- include "mcp-clickhouse.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "mcp-clickhouse.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "mcp-clickhouse.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: mcp-clickhouse
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.container.port }}
+              protocol: TCP
+          env:
+            - name: CLICKHOUSE_HOST
+              value: "{{ .Values.clickhouse.host }}"
+            - name: CLICKHOUSE_PORT
+              value: "{{ .Values.clickhouse.port | toString }}"
+            - name: CLICKHOUSE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.clickhouse.secret.name }}
+                  key: {{ .Values.clickhouse.secret.userKey }}
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.clickhouse.secret.name }}
+                  key: {{ .Values.clickhouse.secret.passwordKey }}
+            - name: CLICKHOUSE_MCP_AUTH_DISABLED
+              value: "{{ .Values.server.authDisabled | toString }}"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
